@@ -67,17 +67,30 @@ void instantiate_new_page_family(char* name, uint32_t size) {
 
 void print_registered_page_families() {
     vm_page_family_t* curr = NULL; 
-    PAGE_FAMILY_ITERATOR_BEGIN(head, curr) {
-        printf("Name of the struct: %s, Size of the struct: %d\n", curr->struct_name, curr->struct_size); 
-    } PAGE_FAMILY_ITERATOR_END(head, curr); 
+    page_for_structs_t* curr_page = NULL; 
+    for (curr_page = head; curr_page; curr_page = curr_page->next) {
+        PAGE_FAMILY_ITERATOR_BEGIN(curr_page, curr) {
+            printf("Name of the struct: %s, Size of the struct: %d\n", curr->struct_name, curr->struct_size); 
+        } PAGE_FAMILY_ITERATOR_END(curr_page, curr); 
+    }
 }
 
 vm_page_family_t* lookup(char* struct_name) {
     vm_page_family_t* curr = NULL; 
-    PAGE_FAMILY_ITERATOR_BEGIN(head, curr) {
-        if (strncmp(curr->struct_name, struct_name, MAX_STRUCT_SIZE) == 0) {
-            return curr; 
-        } 
-    } PAGE_FAMILY_ITERATOR_END(head, curr); 
+    page_for_structs_t* curr_page = NULL; 
+    for (curr_page = head; curr_page; curr_page = curr_page->next) {
+        PAGE_FAMILY_ITERATOR_BEGIN(head, curr) {
+            if (strncmp(curr->struct_name, struct_name, MAX_STRUCT_SIZE) == 0) {
+                return curr; 
+            } 
+        } PAGE_FAMILY_ITERATOR_END(head, curr); 
+    }
     return NULL; 
+}
+
+static void combine_free_blocks(block_metadata_t* first, block_metadata_t* second) {
+    assert(first->is_free && second->is_free); 
+    first->block_size += sizeof(block_metadata_t) + second->block_size; 
+    first->next_block = second->next_block; 
+    if (second->next_block) second->next_block->prev_block = first; 
 }
