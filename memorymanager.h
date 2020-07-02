@@ -2,9 +2,12 @@
 
 #define MAX_STRUCT_SIZE 64
 
+
+//will be stored at the bottom of each virtual memory page 
 typedef struct vm_page_family {
     char struct_name[MAX_STRUCT_SIZE];
     uint32_t struct_size;  
+    struct vm_page* first_page; 
 } vm_page_family_t; 
 
 typedef struct page_for_structs {
@@ -41,7 +44,7 @@ typedef struct block_metadata {
 } block_metadata_t; 
 
 #define offset_of(container_structure, field_name)    \
-    (unsigned int)&(((container_structure*)0)->field_name)
+    (uint64_t)&(((container_structure*)0)->field_name)
 
 #define get_page_from_block(ptr) \
     (void*)((char*)ptr - ptr->offset)
@@ -61,10 +64,32 @@ typedef struct block_metadata {
     allocated_block->next_block = free_block;                             \
     if (free_block->next) free_block->next_block->prev_block = free_block 
 
+typedef struct vm_page {
+    struct vm_page* prev_page; 
+    struct vm_page* next_page; 
+    struct vm_page_family* pg_family; 
+    block_metadata_t block_meta; 
+    char page_memory[0]; 
+} vm_page_t; 
+
+bool_t is_page_empty(vm_page_t* vm_page); 
+
+#define MARK_PAGE_EMPTY(ptr)        \
+    ptr->block_meta.next_block = NULL;  \
+    ptr->block_meta.prev_block = NULL;  \
+    ptr->block_meta.is_free = TRUE; 
 
 
+#define VM_PAGE_ITERATOR_BEGIN(ptr, curr)   \
+{                                           \
+    for(curr = ptr->first_page; curr; curr = curr->next_page) { 
 
+#define VM_PAGE_ITERATOR_END(ptr, curr) }}
 
+#define METABLOCK_ITERATOR_BEGIN(ptr, curr)         \
+{                                                   \
+    for (curr = ptr->block_meta; curr; curr = curr->next_block) {
 
+#define METABLOCK_ITERATOR_END(ptr, curr) }} 
 
-
+vm_page_t* allocate_vm_page(vm_page_family_t* vm_page_family); 

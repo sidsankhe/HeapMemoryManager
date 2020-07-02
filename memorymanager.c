@@ -42,6 +42,7 @@ void instantiate_new_page_family(char* name, uint32_t size) {
         head->next = NULL; 
         strncpy(head->vm_page_family[0].struct_name, name, MAX_STRUCT_SIZE);
         head->vm_page_family[0].struct_size = size; 
+        head->vm_page_family[0].first_page = NULL; 
         return; 
     } 
 
@@ -63,6 +64,7 @@ void instantiate_new_page_family(char* name, uint32_t size) {
 
     strncpy(curr->struct_name, name, MAX_STRUCT_SIZE); 
     curr->struct_size = size; 
+    curr->first_page = NULL; 
 }
 
 void print_registered_page_families() {
@@ -93,4 +95,52 @@ static void combine_free_blocks(block_metadata_t* first, block_metadata_t* secon
     first->block_size += sizeof(block_metadata_t) + second->block_size; 
     first->next_block = second->next_block; 
     if (second->next_block) second->next_block->prev_block = first; 
+}
+
+bool_t is_page_empty(vm_page_t* vm_page) {
+    if (vm_page->block_meta.next_block == NULL && vm_page->block_meta.is_free 
+    && vm_page->block_meta.prev_block == NULL) {
+        return TRUE; 
+    }
+    return FALSE; 
+}
+
+static inline uint32_t max_page_allocatable_memory(int units) {
+    return (uint32_t)((SYSTEM_PAGE_SIZE*units) - offset_of(vm_page_t, page_memory));   
+}
+
+vm_page_t* allocate_vm_page(vm_page_family_t* vm_page_family) {
+    vm_page_t* page = (vm_page_t*)get_new_vm_page(1); 
+    MARK_PAGE_EMPTY(page); 
+    page->block_meta.block_size = max_page_allocatable_memory(1); 
+    page->block_meta.offset = offset_of(vm_page_t, block_meta); 
+    page->next_page = NULL; 
+    page->prev_page = NULL; 
+    page->pg_family = vm_page_family; 
+    if (!vm_page_family->first_page) {
+        vm_page_family->first_page = page; 
+        return page; 
+    } 
+    page->next_page = vm_page_family->first_page; 
+    vm_page_family->first_page->prev_page = page; 
+    vm_page_family->first_page = page; 
+}
+
+void delete_and_free(vm_page_t* vm_page) {
+    vm_page_family_t* pg_family = vm_page->pg_family; 
+    if (pg_family->first_page == vm_page) {
+        pg_family->first_page = vm_page->next_page; 
+        if (vm_page->next_page) vm_page->next_page->prev_page = NULL; 
+        vm_page->next_page = NULL; 
+        vm_page->prev_page = NULL; 
+        release_vm_page((void*)vm_page, 1); 
+        return; 
+    }
+    if (vm_page->next_page)
+        vm_page->next_page->prev_page = vm_page->prev_page; 
+    if (vm_page->prev_page)
+        vm_page->prev_page->next_page = vm_page->next_page; 
+    vm_page->next_page = NULL; 
+    vm_page->prev_page = NULL; 
+    release_vm_page((void*)vm_page, 1); 
 }
