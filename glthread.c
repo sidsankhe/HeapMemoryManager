@@ -87,7 +87,7 @@ void remove_node(glthread_t* thread, glnode_t* node) {
     }
 }
 
-void delete_and_free(glthread_t* thread) {
+void delete_and_free_thread(glthread_t* thread) {
     while (thread->head) {
         remove_node(thread, thread->head); 
     }

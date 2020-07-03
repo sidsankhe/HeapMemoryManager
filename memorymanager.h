@@ -1,4 +1,5 @@
 #include <stdint.h> 
+#include "glthread.h"
 
 #define MAX_STRUCT_SIZE 64
 
@@ -8,6 +9,7 @@ typedef struct vm_page_family {
     char struct_name[MAX_STRUCT_SIZE];
     uint32_t struct_size;  
     struct vm_page* first_page; 
+    glthread_t free_blocks; 
 } vm_page_family_t; 
 
 typedef struct page_for_structs {
@@ -39,6 +41,7 @@ typedef struct block_metadata {
     bool_t is_free; 
     uint32_t block_size; 
     uint32_t offset; 
+    glnode_t glnode; 
     struct block_metadata* prev_block; 
     struct block_metadata* next_block; 
 } block_metadata_t; 
@@ -53,7 +56,7 @@ typedef struct block_metadata {
     (ptr->next_block)
 
 #define next_block_by_size(ptr)     \
-    (block_meta_data_t*)((char*)(ptr+1) + ptr->block_size)
+    (block_metadata_t*)((char*)(ptr+1) + ptr->block_size)
 
 #define prev_block(ptr) \
     (ptr->prev_block)
@@ -62,7 +65,7 @@ typedef struct block_metadata {
     free_block->next_block = allocated_block->next_block;                       \
     free_block->prev_block = allocated_block;                             \
     allocated_block->next_block = free_block;                             \
-    if (free_block->next) free_block->next_block->prev_block = free_block 
+    if (free_block->next_block) free_block->next_block->prev_block = free_block 
 
 typedef struct vm_page {
     struct vm_page* prev_page; 
@@ -88,7 +91,7 @@ bool_t is_page_empty(vm_page_t* vm_page);
 
 #define METABLOCK_ITERATOR_BEGIN(ptr, curr)         \
 {                                                   \
-    for (curr = ptr->block_meta; curr; curr = curr->next_block) {
+    for (curr = (block_metadata_t*)(&ptr->block_meta); curr; curr = curr->next_block) {
 
 #define METABLOCK_ITERATOR_END(ptr, curr) }} 
 

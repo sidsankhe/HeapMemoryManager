@@ -22,7 +22,7 @@ void remove_node(glthread_t* thread, glnode_t* node);
 
 void init_glthread(glthread_t* glthread, uint64_t offset); 
 
-void delete_and_free(glthread_t*); 
+void delete_and_free_thread(glthread_t*); 
 
 #define init_glnode(glnode_ptr)        \
     glnode_ptr->left = NULL;            \

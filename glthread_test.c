@@ -54,6 +54,8 @@ int main(int argc, char** argv) {
     add_node_sorted(thread_ptr, &student_3->glnode, &compare); 
 
     remove_node(thread_ptr, &student_3->glnode); 
+    remove_node(thread_ptr, &student_1->glnode); 
+    remove_node(thread_ptr, &student_2->glnode); 
 
     student_t* curr = NULL; 
     int count = 0; 
@@ -63,9 +65,10 @@ int main(int argc, char** argv) {
         //if (count >= 4) break; 
     } GLTHREAD_ITERATOR_END; 
 
+    delete_and_free(thread_ptr); 
     free(student_1); 
     free(student_2); 
     free(student_3); 
-    delete_and_free(thread_ptr); 
+    //delete_and_free(thread_ptr); 
 
 }
