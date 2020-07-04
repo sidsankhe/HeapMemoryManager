@@ -17,7 +17,7 @@ int main(int argc, char** argv) {
     REGISTER_STRUCT(professor_t); 
     print_registered_page_families(); 
 
-    xcalloc("professor_t", 1); 
+    void* ptr1 = xcalloc("professor_t", 1); 
     xcalloc("professor_t", 1);
     xcalloc("professor_t", 1);  
     xcalloc("professor_t", 1); 
@@ -30,6 +30,8 @@ int main(int argc, char** argv) {
     // print_memory_usage("student_t"); 
     // xcalloc("student_t", 1); 
     print_memory_usage("professor_t");
+    xfree(ptr1); 
+    print_memory_usage("professor_t"); 
     //print_memory_usage("student_t");  
     // 
     // xcalloc("professor_t", 1); 

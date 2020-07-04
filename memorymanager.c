@@ -338,4 +338,47 @@ void print_memory_usage(char* struct_name) {
         (number_of_struct_families * sizeof(vm_page_family_t))));
 }
 
+static uint32_t get_hard_if_size(block_metadata_t* first, block_metadata_t* second) {
+    block_metadata_t* next_block = next_block_by_size(first); 
+    return (uint32_t)((uint64_t)second - (uint64_t)next_block); 
+}
 
+static block_metadata_t* free_blocks(block_metadata_t* metablock) {
+    block_metadata_t* return_block = NULL; 
+    assert(!metablock->is_free); 
+    vm_page_t* page = get_page_from_block(metablock); 
+    fprintf(stderr, "Page: %p\n", page); 
+    vm_page_family_t* pg_family = page->pg_family; 
+    metablock->is_free = TRUE; 
+    fprintf(stderr, "Here\n"); 
+    if (metablock->next_block) {
+        fprintf(stderr, "Here 3\n"); 
+        metablock->block_size += get_hard_if_size(metablock, metablock->next_block); 
+    } else {
+        char* end_address = (char*)((char*)page + SYSTEM_PAGE_SIZE); 
+        char* end_address_free = (char*)(metablock+1) + metablock->block_size;
+        uint32_t internal_fragmentation = (uint64_t)end_address - (uint64_t)end_address_free; 
+        metablock->block_size += internal_fragmentation; 
+    }
+    if (metablock->next_block && metablock->next_block->is_free) {
+        combine_free_blocks(metablock, metablock->next_block); 
+        //return_block = metablock; 
+    } 
+    return_block = metablock; 
+    block_metadata_t* prev = return_block->prev_block; 
+    if (prev && prev->is_free) {
+        combine_free_blocks(prev, return_block); 
+        return_block = prev; 
+    }
+    if(is_page_empty(page)) {
+        delete_and_free(page); 
+    }
+    add_free_block(pg_family, return_block); 
+    return return_block; 
+}
+
+void xfree(void* ptr) {
+    block_metadata_t* metablock = (block_metadata_t*)((char*)ptr - sizeof(block_metadata_t)); 
+    assert(!metablock->is_free); 
+    free_blocks(metablock); 
+}
